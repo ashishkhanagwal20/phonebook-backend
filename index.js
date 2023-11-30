@@ -1,7 +1,9 @@
 const express = require("express");
+const morgan = require("morgan");
 const app = express();
-const port = 3000;
+const PORT = process.env.PORT || 3001;
 app.use(express.json());
+app.use(morgan("tiny"));
 let phonebook = [
   {
     id: 1,
@@ -48,7 +50,6 @@ const generateId = () => {
 
 app.post("/api/persons", (req, res) => {
   const body = req.body;
-  console.log("body", body);
 
   const person = {
     name: body.name,
@@ -74,10 +75,9 @@ app.post("/api/persons", (req, res) => {
       error: "Name aleady exists",
     });
   }
-  console.log("Person", person);
 
   phonebook = phonebook.concat(person);
-  console.log("phonebook", phonebook);
+
   res.json(person);
 });
 
@@ -86,4 +86,4 @@ app.get("/info", (req, res) => {
   const date = new Date();
   res.send(`Phonebook has info for ${length} People <br/>${date}`);
 });
-app.listen(port, () => console.log(`Example app listening on port ${port}!`));
+app.listen(PORT, () => console.log(`Example app listening on port ${PORT}!`));
