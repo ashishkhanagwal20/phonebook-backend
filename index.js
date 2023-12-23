@@ -14,6 +14,18 @@ app.use(express.json());
 app.use(morgan("tiny"));
 app.use(express.static("dist"));
 app.use(express.urlencoded({ extended: true }));
+const errorHandler = (error, request, response, next) => {
+  console.error(error.message);
+
+  if (error.name === "CastError") {
+    return response.status(400).send({ error: "malformatted id" });
+  }
+
+  next(error);
+};
+
+// this has to be the last loaded middleware.
+app.use(errorHandler);
 let phonebook = [
   {
     id: 1,
@@ -55,10 +67,22 @@ app.get("/api/persons", (req, res) => {
 //   }
 // });
 
-app.get("/api/persons/:id", (request, response) => {
-  Phonebook.findById(request.params.id).then((phonebook) => {
-    response.json(phonebook);
-  });
+// app.get("/api/persons/:id", (request, response) => {
+//   Phonebook.findById(request.params.id).then((phonebook) => {
+//     response.json(phonebook);
+//   });
+// });
+
+app.get("/api/persons/:id", (request, response, next) => {
+  Phonebook.findById(request.params.id)
+    .then((phonebook) => {
+      if (phonebook) {
+        response.json(phonebook);
+      } else {
+        response.status(404).end();
+      }
+    })
+    .catch((error) => next(error));
 });
 
 const generateId = () => {
@@ -99,6 +123,7 @@ const generateId = () => {
 
 //   res.json(person);
 // });
+
 app.post("/api/persons", (request, response) => {
   const body = request.body;
   if (!body.name) {
@@ -118,6 +143,33 @@ app.post("/api/persons", (request, response) => {
   phonebook.save().then((person) => {
     response.json(person);
   });
+});
+
+app.put("/api/persons/:id", (request, response, next) => {
+  const body = request.body;
+
+  const person = {
+    name: body.name,
+    number: body.number,
+  };
+
+  Phonebook.findByIdAndUpdate(request.params.id, person, { new: true })
+    .then((updatedPhonebook) => {
+      response.json(updatedPhonebook);
+    })
+    .catch((error) => next(error));
+});
+
+app.delete("/api/persons/:id", (request, response, next) => {
+  Phonebook.findByIdAndDelete(request.params.id)
+    .then((result) => {
+      console.log(result); // Log the result to see what was deleted
+      response.status(204).end();
+    })
+    .catch((error) => {
+      console.error(error); // Log any errors
+      next(error);
+    });
 });
 
 app.get("/info", (req, res) => {
